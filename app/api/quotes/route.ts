@@ -19,7 +19,9 @@ if(distance.miles>800)throw new Error("Please call us to plan this long-distance
  const end=(ret??start)+distance.minutes*(ret===null?2:1)+45;
  if(!await available(b.date,start,end))throw new Error("This trip does not fit the available window, including loading and return travel. Choose another time or call us.");
  const prior=await d.prepare("SELECT id FROM ride_requests WHERE phone=? AND status='completed' LIMIT 1").bind(phone).first();
- const estimate=price(distance.miles,b.service,start,ret,b.first&&!prior);
+ // Each leg is priced on its own route. If the reverse lookup fails, fall back to the outbound distance.
+ let returnMiles:number|null=null;if(ret!==null){try{returnMiles=(await route(b.destination,b.pickup)).miles;}catch{returnMiles=distance.miles;}}
+ const estimate=price(distance.miles,b.service,start,ret,b.first&&!prior,returnMiles);
  await d.prepare("INSERT INTO ride_requests(id,name,phone,email,date,start,end,details,estimate,status,payment,created) VALUES(?,?,?,?,?,?,?,?,?,'quoted','unpaid',?)").bind(b.key,b.name,phone,b.email,b.date,start,end,JSON.stringify({pickup:b.pickup.label,destination:b.destination.label,service:b.service,time:b.time,returnTime:b.returnTime||null}),JSON.stringify(estimate),new Date().toISOString()).run();
  return reply({id:b.key,estimate,message:"Quote saved. Availability and first-ride eligibility require confirmation. No ride has been booked."});
  }catch(e){return reply({error:e instanceof z.ZodError?"Check your contact information and choose both suggested addresses.":e instanceof Error?e.message:"Unable to save your quote. Please try again."},400);}}
