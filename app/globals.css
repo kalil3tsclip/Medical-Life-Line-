@@ -205,3 +205,5 @@ h1,h2{font-weight:800}h3{font-weight:700}
 .built-by{padding:0 0 18px;text-align:center;font-size:.72rem;letter-spacing:.04em;color:#7f97b1}
 .built-by a{color:#bcd0e5;font-weight:700;text-decoration:underline;text-underline-offset:3px}
 .built-by a:hover{color:#fff}
+.suggestions button.active{background:#e6f0fb}
+.suggestions{max-height:320px;overflow-y:auto}

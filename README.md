@@ -1,3 +1,29 @@
+# Medical Life Line website
+
+Live site: https://medilifelinetrans.com (currently hosted on ChatGPT Sites).
+
+## Address autocomplete (quote form)
+
+The pickup and destination fields suggest addresses as the customer types.
+
+- **With a Google key** (`GOOGLE_MAPS_BROWSER_KEY`): Google Places suggestions, biased to Houston / Missouri City. The key is served to the browser by `app/api/address-config/route.ts` and used by `components/GoogleAddressField.tsx`.
+- **Without a key, or if Google errors:** the form automatically falls back to the free Photon/OpenStreetMap search plus a built-in list of major Houston hospitals (`components/QuoteForm.tsx`). Arrow keys, Enter and Escape work in the suggestion list.
+
+The key from ChatGPT Sites does **not** transfer. When the site moves to a new host, create the owner's own key:
+
+1. Google Cloud Console → create a project → enable **Maps JavaScript API** and **Places API (New)** (billing must be on; normal small-business usage typically stays within Google's monthly free usage, but check current pricing).
+2. Credentials → Create API key → **Application restrictions: Websites** → add `https://medilifelinetrans.com/*` and `https://www.medilifelinetrans.com/*` (plus the test/preview address while testing).
+3. **API restrictions:** limit the key to Maps JavaScript API and Places API (New).
+4. Add it to the host as the environment variable `GOOGLE_MAPS_BROWSER_KEY` (Cloudflare: Worker → Settings → Variables). For local development copy `.dev.vars.example` to `.dev.vars`.
+
+This is a browser key, so it is visible to visitors by design; the website restriction is what protects it.
+
+## Pricing
+
+Fare rules live in `lib/pricing.ts`. Run `pnpm test:pricing` after any change.
+
+---
+
 # vinext-starter
 
 A clean full-stack starter running on [vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and Drizzle support.

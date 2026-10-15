@@ -16,6 +16,11 @@ function FallbackAddressField({ label, value, onChange, onPick }: { label: strin
   const [results, setResults] = useState<Place[]>([]);
   const [selected, setSelected] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [highlight, setHighlight] = useState(-1);
+  const [open, setOpen] = useState(false);
+  const id = label.replaceAll(" ", "-");
+  const choose = (p: Place) => { setSelected(true); onChange(p.label); onPick(p); setResults([]); setOpen(false); setHighlight(-1); };
+  useEffect(() => { setHighlight(-1); }, [results]);
   useEffect(() => {
     if (selected || value.trim().length < 3) { setResults([]); return; }
     const terms = value.toLowerCase().split(/\s+/).filter(Boolean);
@@ -39,10 +44,22 @@ function FallbackAddressField({ label, value, onChange, onPick }: { label: strin
     return () => { clearTimeout(timer); controller.abort(); };
   }, [value, selected]);
   return <div className="address-control">
-    <label htmlFor={label.replaceAll(" ", "-")}>{label}</label>
-    <div className="input-icon"><MapPin size={20} /><input id={label.replaceAll(" ", "-")} required value={value} onChange={(e) => { setSelected(false); onChange(e.target.value); onPick(null); }} placeholder={`Start typing your ${label.toLowerCase()}...`} autoComplete="off" />{busy && <Loader2 className="spin" size={18} />}</div>
+    <label htmlFor={id}>{label}</label>
+    <div className="input-icon"><MapPin size={20} /><input id={id} required value={value} role="combobox" aria-autocomplete="list" aria-expanded={open && results.length > 0} aria-controls={`${id}-list`} aria-activedescendant={highlight >= 0 ? `${id}-opt-${highlight}` : undefined} enterKeyHint="search"
+      onChange={(e) => { setSelected(false); setOpen(true); onChange(e.target.value); onPick(null); }}
+      onFocus={() => setOpen(true)}
+      onBlur={() => setTimeout(() => setOpen(false), 150)}
+      onKeyDown={(e) => {
+        if (!open || results.length === 0) return;
+        if (e.key === "ArrowDown") { e.preventDefault(); setHighlight(h => (h + 1) % results.length); }
+        else if (e.key === "ArrowUp") { e.preventDefault(); setHighlight(h => (h <= 0 ? results.length - 1 : h - 1)); }
+        else if (e.key === "Enter") { e.preventDefault(); choose(results[highlight >= 0 ? highlight : 0]); }
+        else if (e.key === "Escape") { setOpen(false); }
+      }}
+      placeholder={`Start typing your ${label.toLowerCase()}...`} autoComplete="off" />{busy && <Loader2 className="spin" size={18} />}</div>
     {!selected && value.trim().length >= 3 && !busy && results.length === 0 && <p className="address-help" role="status">No matching address yet. Add a street name or city, or call (346) 909-7822 for help.</p>}
-    {results.length > 0 && <div className="suggestions">{results.map((p, i) => <button type="button" key={`${p.lon}-${p.lat}-${i}`} onClick={() => { setSelected(true); onChange(p.label); onPick(p); setResults([]); }}><MapPin size={16} /><span>{p.label}</span></button>)}</div>}
+    {open && results.length > 0 && <div className="suggestions" role="listbox" id={`${id}-list`}>{results.map((p, i) => <button type="button" role="option" id={`${id}-opt-${i}`} aria-selected={i === highlight} className={i === highlight ? "active" : undefined} key={`${p.lon}-${p.lat}-${i}`} onMouseDown={(e) => e.preventDefault()} onClick={() => choose(p)}><MapPin size={16} /><span>{p.label}</span></button>)}</div>}
+    {selected && <p className="selected-address">Selected: {value}</p>}
   </div>;
 }
 
