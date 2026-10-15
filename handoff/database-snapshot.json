@@ -1,0 +1,10 @@
+{
+  "checked_at_utc": "2026-10-15T08:38:47.403075+00:00",
+  "binding": "DB",
+  "tables": {
+    "availability_blocks": [],
+    "ride_requests": []
+  },
+  "complete": true,
+  "notes": "Both tables read with no omissions or truncation. Snapshot does not include future records."
+}

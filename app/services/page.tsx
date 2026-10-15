@@ -1,0 +1,14 @@
+import type { Metadata } from "next";
+
+import { Accessibility as Wheelchair, CalendarCheck, CheckCircle2, Hospital, Route, Stethoscope } from "lucide-react";
+import { PageLayout } from "@/components/PageLayout";
+
+export const metadata: Metadata = { title: "Wheelchair Transportation Services", description: "Wheelchair transportation for appointments, dialysis, hospital discharges and rehabilitation visits in Houston and Missouri City.", alternates: { canonical: "/services" } };
+const items = [
+  [Wheelchair,"Wheelchair Transportation","Safe loading, securement, unloading, and door-to-door assistance in our wheelchair-accessible vehicle."],
+  [Stethoscope,"Medical Appointments","Scheduled rides to primary care, specialists, outpatient procedures, therapy, dental care, and follow-up visits."],
+  [CalendarCheck,"Dialysis Transportation","Recurring rides designed around your treatment schedule, with consistent communication and priority service."],
+  [Hospital,"Hospital Discharge Rides","Comfortable transportation from the hospital or rehabilitation center to home or another care setting."],
+  [Route,"Essential Private-Pay Trips","Wheelchair-accessible transportation for family visits, errands, community events, and other approved destinations."],
+];
+export default function Services(){return <PageLayout eyebrow="Wheelchair transportation" title="One Service. Delivered With a Higher Standard." intro="We plan ambulatory and wheelchair rides around safety, comfort, and dignity."><section className="section page-width"><div className="service-grid">{items.slice(0,4).map(([Icon,t,b]:any)=><article className="service-card" key={t}><Icon/><h3>{t}</h3><p>{b}</p></article>)}</div><div className="content-grid section"><div><h2>What every ride includes</h2><ul className="check-list"><li><CheckCircle2/>Wheelchair loading and unloading</li><li><CheckCircle2/>Proper wheelchair securement</li><li><CheckCircle2/>Door-to-door assistance when accessible</li><li><CheckCircle2/>Trip confirmation and clear communication</li><li><CheckCircle2/>A clean, wheelchair-accessible vehicle</li></ul><a href="/quote" className="primary-button">Get an Instant Quote</a></div><div className="info-card"><h2>{items[4][1] as string}</h2><p>{items[4][2] as string}</p><p><strong>Important:</strong> Medical Life Line provides non-emergency transportation. We do not provide emergency medical care or ambulance services.</p></div></div></section><section className="section page-width"><h2>Local, statewide & weekend rides</h2><p>Request a personalized estimate for ambulatory or wheelchair transportation. After-hours trips are available by arrangement.</p><a href="/quote" className="primary-button">Get My Estimate</a></section></PageLayout>}
