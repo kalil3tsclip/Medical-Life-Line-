@@ -1,3 +1,9 @@
 # Copy to .dev.vars for local development (never commit .dev.vars).
 # Browser key for address autocomplete. Leave blank to use the free backup (Photon/OpenStreetMap).
 GOOGLE_MAPS_BROWSER_KEY=
+# Square deposits (use sandbox values while testing)
+SQUARE_ACCESS_TOKEN=
+SQUARE_LOCATION_ID=
+SQUARE_ENVIRONMENT=sandbox
+SQUARE_WEBHOOK_SIGNATURE_KEY=
+SITE_URL=https://medilifelinetrans.com

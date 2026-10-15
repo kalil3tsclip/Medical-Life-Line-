@@ -18,6 +18,24 @@ The key from ChatGPT Sites does **not** transfer. When the site moves to a new h
 
 This is a browser key, so it is visible to visitors by design; the website restriction is what protects it.
 
+## Booking flow and Square deposits
+
+1. Customer gets an instant quote and taps **Request This Ride** → status `requested`.
+2. Owner reviews it on the ride desk (`/admin`) and taps **Send deposit link** → a Square payment link for 50% of the quote is created, the ride becomes `held` and blocks the calendar for 24 hours.
+3. Owner taps **Text link to rider** (opens the phone's Messages app with the link filled in) or copies it.
+4. When Square reports the payment as COMPLETED (webhook `/api/square-webhook`), the ride is marked `deposit-paid` and `confirmed` automatically if the time is still free; otherwise it's flagged in **Needs attention**.
+5. Balance is collected after the trip and marked `paid` by the owner.
+
+Phone bookings are added from the ride desk (**+ Add a phone booking**) and follow the same steps.
+
+Square setup (once the site is hosted):
+1. developer.squareup.com → create an application → copy the **access token** and the **location ID** (start with Sandbox to test).
+2. Webhooks → add a subscription to `https://medilifelinetrans.com/api/square-webhook` for **payment.updated** → copy the **signature key**.
+3. Set `SQUARE_ACCESS_TOKEN`, `SQUARE_LOCATION_ID`, `SQUARE_ENVIRONMENT` (`sandbox` or `production`), `SQUARE_WEBHOOK_SIGNATURE_KEY` and `SITE_URL` as secrets on the host.
+4. Test with a Square sandbox card before switching `SQUARE_ENVIRONMENT` to `production`.
+
+Without these keys the site still works: deposits are recorded by hand on each ride card.
+
 ## Pricing
 
 Fare rules live in `lib/pricing.ts`. Run `pnpm test:pricing` after any change.
