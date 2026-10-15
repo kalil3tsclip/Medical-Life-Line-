@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { getChatGPTUser } from "@/app/chatgpt-auth";
-export { price, timeFee } from "@/lib/pricing";
+export { price, quote, timeFee, RATES } from "@/lib/pricing";
 export function database(){ if(!env.DB) throw new Error("Booking storage is unavailable. Please call (346) 909-7822."); return env.DB; }
 export async function owner(){const u=await getChatGPTUser();return !!u && u.email.toLowerCase()==="vgcaldwell89@gmail.com";}
 export function sameOrigin(r:Request){return r.headers.get("origin")===new URL(r.url).origin;}
