@@ -19,6 +19,7 @@ export function SiteFooter() {
         <div><h2>Follow Us</h2><div className="social-row"><a className="instagram" href="https://www.instagram.com/medicallifelinellc" target="_blank" rel="noreferrer" aria-label="Medical Life Line on Instagram"><InstagramIcon /></a><a className="facebook" href="https://www.facebook.com/61566218184529" target="_blank" rel="noreferrer" aria-label="Medical Life Line on Facebook"><FacebookIcon /></a></div></div>
       </div>
       <div className="copyright page-width">© 2026 Medical Life Line LLC. All rights reserved. <a href="/privacy">Privacy</a> <a href="/admin">Owner sign-in</a> <span>Non-emergency transportation only.</span></div>
+      <div className="built-by page-width">Built by <a href="https://thestickyagent.com" target="_blank" rel="noopener">Sticky Agent</a></div>
     </footer>
   );
 }

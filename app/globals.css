@@ -202,3 +202,6 @@ h1,h2{font-weight:800}h3{font-weight:700}
   .final-cta>div>div:last-child{flex-direction:column}
 }
 @media(prefers-reduced-motion:reduce){.hero-image{animation:none;transform:scale(1.04)}.hero-glint{display:none}.service-ticker-track{animation:none;flex-wrap:wrap}}
+.built-by{padding:0 0 18px;text-align:center;font-size:.72rem;letter-spacing:.04em;color:#7f97b1}
+.built-by a{color:#bcd0e5;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.built-by a:hover{color:#fff}
