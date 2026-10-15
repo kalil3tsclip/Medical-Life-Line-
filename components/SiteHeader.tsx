@@ -1,4 +1,4 @@
-import { Menu, Phone } from "lucide-react";
+import { Menu, MessageSquare, Phone } from "lucide-react";
 import { FacebookIcon, InstagramIcon } from "./SocialIcons";
 
 const nav = [
@@ -26,7 +26,7 @@ export function SiteHeader() {
       <div className="owner-access-bar"><a href="/admin">Owner Login →</a></div>
       <header className="site-header">
         <a href="/" className="brand" aria-label="Medical Life Line home">
-          <img src="/medical-life-line-logo.jpg" alt="Medical Life Line non-emergency medical transportation" />
+          <img src="/medical-life-line-logo.jpg" alt="Medical Life Line non-emergency medical transportation" width={255} height={78} />
         </a>
         <nav className="desktop-nav" aria-label="Main navigation">
           {nav.map(([label, href]) => <a key={href} href={href}>{label}</a>)}
@@ -43,6 +43,7 @@ export function SiteHeader() {
             <a href="/admin">Owner Login</a>
             <a href="/quote" className="primary-button">Get an Instant Quote</a>
             <a href="tel:+13469097822" aria-label="Call Medical Life Line at 346-909-7822" className="mobile-call"><Phone size={18} /> (346) 909-7822</a>
+            <a href="sms:+13469097822" aria-label="Text Medical Life Line at 346-909-7822" className="mobile-call"><MessageSquare size={18} /> Text (346) 909-7822</a>
           </nav>
         </details>
       </header>
