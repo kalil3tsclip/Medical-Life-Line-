@@ -362,3 +362,25 @@ test("without Access settings on the host, nobody gets in", async () => {
   globalThis.__TEST_ENV.ACCESS_AUD = undefined;
   assert.equal(await adminAs({ "cf-access-jwt-assertion": accessToken(OWNER.email) }), 403);
 });
+
+// ---------- Online pickup times ----------
+test("online pickup list runs 5:00 a.m. to 9:30 p.m. with friendly labels", async () => {
+  const r = await json(await availability.GET(new Request(SITE + "/api/availability?date=" + DAY)));
+  assert.equal(r.status, 200);
+  assert.equal(r.body.slots[0].time, "05:00");
+  assert.equal(r.body.slots[0].label, "5:00 a.m.");
+  assert.equal(r.body.slots.at(-1).time, "21:30");
+  assert.equal(r.body.slots.find((s) => s.time === "18:30").label, "6:30 p.m. (evening +$45)");
+});
+test("today's list hides times less than an hour away", async () => {
+  const r = await json(await availability.GET(new Request(SITE + "/api/availability?date=" + houstonDate(0))));
+  const now = houstonNowMinutes();
+  for (const s of r.body.slots) assert.ok(Number(s.time.slice(0, 2)) * 60 + Number(s.time.slice(3)) >= now + 60, s.time);
+});
+test("late-night times are refused online and point to a phone call", async () => {
+  for (const time of ["02:00", "22:00"]) {
+    const r = await json(await quotes.POST(req("/api/quotes", "POST", quoteBody({ time }))));
+    assert.equal(r.status, 400);
+    assert.match(r.body.error, /call/);
+  }
+});

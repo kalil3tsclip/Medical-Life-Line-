@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ONLINE_FIRST_PICKUP,ONLINE_LAST_PICKUP } from "@/lib/time";
 import { available,database,minutes,quote,reply,route,sameOrigin,today,validDate } from "@/lib/booking";
 const place=z.object({label:z.string().min(4).max(300),lat:z.number().min(25).max(37),lon:z.number().min(-107).max(-93)});
 const hhmm=z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
@@ -18,6 +19,7 @@ export async function POST(r:Request){if(!sameOrigin(r))return reply({error:"Ple
  const round=!!b.round||!!b.returnTime;const returnPlan=round?(b.returnPlan||(b.returnTime?"scheduled":"call")):null;
  if(returnPlan==="scheduled"&&!b.returnTime)throw new Error("Choose a return pickup time, or select that you'll call when ready.");
  const start=minutes(b.time),ret=returnPlan==="scheduled"&&b.returnTime?minutes(b.returnTime):null;
+ if(start<ONLINE_FIRST_PICKUP||start>ONLINE_LAST_PICKUP||(ret!==null&&(ret<ONLINE_FIRST_PICKUP||ret>ONLINE_LAST_PICKUP)))throw new Error("Online pickups are 5 a.m. to 9:30 p.m. For a late-night ride, please call (346) 909-7822.");
  const sameDay=b.date===today();
  if(sameDay){const t=new Intl.DateTimeFormat("en-GB",{timeZone:"America/Chicago",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date());if(start<=minutes(t))throw new Error("Please choose a future pickup time.");}
  const d=database();const phone=b.phone.replace(/\D/g,"").replace(/^1(?=\d{10}$)/,"");if(phone.length!==10)throw new Error("Enter a 10-digit US phone number.");
