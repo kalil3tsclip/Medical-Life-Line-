@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { fitIssues } from "@/lib/fit";
 
 type Ride = { id: string; name: string; phone: string; email: string; date: string; start: number; end: number; details: string; estimate: string; status: string; payment: string; created: string };
 
@@ -27,11 +28,12 @@ function collected(r: Ride, q: any) {
 }
 
 export function Dashboard() {
-  const [data, setData] = useState<{ rides: Ride[]; blocks: any[]; square?: boolean }>({ rides: [], blocks: [] });
+  const [data, setData] = useState<{ rides: Ride[]; blocks: any[]; square?: boolean; vehicle?: any }>({ rides: [], blocks: [] });
   const [error, setError] = useState(""), [notice, setNotice] = useState(""), [filter, setFilter] = useState("");
   const [loading, setLoading] = useState(true), [saving, setSaving] = useState(false);
   const [day, setDay] = useState(houstonToday());
   const [links, setLinks] = useState<Record<string, string>>({});
+  const [holds, setHolds] = useState<Record<string, string>>({});
 
   async function load() { setError(""); setLoading(true); try { const r = await fetch("/api/admin"); const d: any = await r.json(); if (!r.ok) throw new Error(d.error); setData(d); } catch (e) { setError(e instanceof Error ? e.message : String(e)); } finally { setLoading(false); } }
   useEffect(() => { load(); }, []);
@@ -42,7 +44,7 @@ export function Dashboard() {
     finally { setSaving(false); }
   }
   async function depositLink(r: Ride) {
-    await save({ action: "deposit-link", id: r.id }, (d) => { setLinks((l) => ({ ...l, [r.id]: d.url })); setNotice(`Deposit link ready for ${r.name}: ${money(d.deposit)}. Text or copy it below.`); });
+    await save({ action: "deposit-link", id: r.id, holdMinutes: holds[r.id] ? Number(holds[r.id]) : undefined }, (d) => { setLinks((l) => ({ ...l, [r.id]: d.url })); setNotice(`Deposit link ready for ${r.name}: ${money(d.deposit)}. Text or copy it below.`); });
   }
   function exportData() { const rows = data.rides.map((r) => ({ ...r, ...parse(r) })); const url = URL.createObjectURL(new Blob([JSON.stringify(rows, null, 2)], { type: "application/json" })); const a = document.createElement("a"); a.href = url; a.download = "medical-life-line-records.json"; a.click(); URL.revokeObjectURL(url); }
 
@@ -70,16 +72,17 @@ export function Dashboard() {
     if (q.underpaid) reasons.push(`deposit short: paid ${money(q.depositPaid)} of ${money(q.deposit)}`);
     if (q.paidAfterCancel) reasons.push("paid after ride was canceled: refund in Square");
     if (q.refunded && r.payment !== "refunded") reasons.push(`partial refund ${money(q.refunded)}`);
-    if (d.wheelchairType && d.wheelchairType !== "standard" && r.status !== "confirmed") reasons.push(`check fit: ${WHEELCHAIR[d.wheelchairType] || d.wheelchairType}${d.combinedWeight ? `, about ${d.combinedWeight} lb` : ""}`);
-    else if (d.combinedWeight && d.combinedWeight >= 300 && r.status !== "confirmed") reasons.push(`check weight limit: about ${d.combinedWeight} lb`);
+    if (["quoted", "requested", "held"].includes(r.status)) reasons.push(...fitIssues(d, data.vehicle || {}));
     if (d.returnPlan === "call") reasons.push("return time to be arranged");
     if (q.ownerReview && !q.manual) reasons.push("long trip: double-check route");
     if (q.tightArrival) reasons.push("tight for appointment time");
-    if (d.steps && d.steps !== "none" && r.status !== "confirmed") reasons.push(`steps: ${STEPS[d.steps]}`);
     if (r.status === "completed" && r.payment !== "paid") reasons.push("balance not marked paid");
     return { r, reasons };
-  }).filter((x) => x.reasons.length).sort((a, b) => (a.r.date + a.r.start).localeCompare(b.r.date + b.r.start)), [rides, today]);
+  }).filter((x) => x.reasons.length).sort((a, b) => (a.r.date + a.r.start).localeCompare(b.r.date + b.r.start)), [rides, today, data.vehicle]);
 
+  const reminders = rides.filter((r) => r.status === "confirmed" && (r.date === addDays(today, 1) || r.date === addDays(today, 2))).sort((a, b) => (a.date + String(a.start).padStart(4, "0")).localeCompare(b.date + String(b.start).padStart(4, "0")));
+  const v = data.vehicle || {};
+  const vehicleIncomplete = !v.rampLbs || !v.securementLbs || !v.usableWidthIn || !v.doorHeightIn;
   const dayRides = rides.filter((r) => r.date === day && ACTIVE.includes(r.status)).sort((a, b) => a.start - b.start);
   const records = rides.filter((r) => { const { d } = parse(r); return (r.name + r.phone + r.email + r.date + (d.riderName || "") + d.pickup + d.destination).toLowerCase().includes(filter.toLowerCase()); });
 
@@ -100,6 +103,20 @@ export function Dashboard() {
     <section className="no-print"><h2>Needs attention {attention.length > 0 && <span className="count-pill">{attention.length}</span>}</h2>
       {loading ? <p>Loading…</p> : attention.length === 0 ? <p className="muted">Nothing waiting on you.</p> : <ul className="attention-list">{attention.map(({ r, reasons }) => <li key={r.id}><a href={`#ride-${r.id}`}><b>{r.name}</b> · {r.date} {clock(r.start)}</a><span>{reasons.join(" · ")}</span></li>)}</ul>}
     </section>
+
+    <section className="no-print"><h2>Reminder calls &amp; texts</h2><p className="muted">Until automatic reminders are switched on: text or call each rider for the next two days, then tap Done.</p>
+      {reminders.length === 0 ? <p className="muted">No confirmed rides in the next two days.</p> : <ul className="reminder-list">{reminders.map((r) => { const { d, q } = parse(r); const who = d.riderName || r.name; const body = encodeURIComponent(`Hi ${r.name}, this is Medical Life Line confirming ${who === r.name ? "your" : `${who}'s`} ride on ${dayLabel(r.date)}. Pickup at ${clock(r.start)} from ${d.pickup}. Reply or call (346) 909-7822 with any changes.`); return <li key={r.id} className={q.remindedAt ? "done" : ""}><span><b>{who}</b> · {dayLabel(r.date)} · {clock(r.start)}</span><span className="reminder-actions"><a href={`sms:+1${r.phone}?&body=${body}`}>Text</a><a href={`tel:+1${r.phone}`}>Call</a>{q.remindedAt ? <em>Done {new Date(q.remindedAt).toLocaleString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</em> : <button disabled={saving} onClick={() => save({ action: "reminded", id: r.id })}>Done</button>}</span></li>; })}</ul>}
+    </section>
+
+    <details className="info-card no-print vehicle-card" open={vehicleIncomplete}><summary>Van limits {vehicleIncomplete ? "· not complete: wheelchair requests need your review" : `· ramp ${v.rampLbs} lb, securement ${v.securementLbs} lb`}</summary>
+      <p className="muted">Enter only verified numbers from the ramp label, securement system or conversion paperwork. Leave blank if unknown.</p>
+      <form className="admin-form" key={v.updated || "new"} onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const num = (k: string) => (f.get(k) ? Number(f.get(k)) : null); save({ action: "vehicle", rampLbs: num("rampLbs"), securementLbs: num("securementLbs"), usableWidthIn: num("usableWidthIn"), doorHeightIn: num("doorHeightIn"), source: String(f.get("source") || "") || null }, () => setNotice("Van limits saved.")); }}>
+        <div className="form-grid"><label>Ramp rated capacity (lb, rider + chair)<input name="rampLbs" type="number" min="1" step="1" defaultValue={v.rampLbs ?? ""} /></label><label>Wheelchair securement limit (lb)<input name="securementLbs" type="number" min="1" step="1" defaultValue={v.securementLbs ?? ""} /></label></div>
+        <div className="form-grid"><label>Usable ramp/aisle width (in)<input name="usableWidthIn" type="number" min="1" step="0.5" defaultValue={v.usableWidthIn ?? ""} /></label><label>Door opening height (in)<input name="doorHeightIn" type="number" min="1" step="0.5" defaultValue={v.doorHeightIn ?? ""} /></label></div>
+        <label className="select-label">Where these numbers came from<input name="source" maxLength={200} placeholder="e.g. ramp label photo, conversion paperwork" defaultValue={v.source ?? ""} /></label>
+        <button disabled={saving}>Save van limits</button>
+      </form>
+    </details>
 
     <section className="day-schedule"><div className="day-head"><h2>Schedule · {dayLabel(day)}</h2><div className="admin-toolbar no-print"><button onClick={() => setDay(addDays(day, -1))}>← Prev</button><input type="date" value={day} onChange={(e) => e.target.value && setDay(e.target.value)} /><button onClick={() => setDay(houstonToday())}>Today</button><button onClick={() => setDay(addDays(day, 1))}>Next →</button><button onClick={() => window.print()}>Print day</button></div></div>
       {dayRides.length === 0 ? <p className="muted">No rides on this day.</p> : <ol className="manifest">{dayRides.map((r) => { const { d, q } = parse(r); return <li key={r.id} className={`manifest-item status-${r.status}`}>
@@ -145,7 +162,7 @@ export function Dashboard() {
       <p><a href={`tel:+1${r.phone}`}>{fmtPhone(r.phone)}</a>{r.email && <> · <a href={`mailto:${r.email}`}>{r.email}</a></>}</p>
       {d.notes && <p className="ride-notes">📝 {d.notes}</p>}
       <p className="muted">Fare {money(q.fare ?? q.subtotal)}{q.afterHours ? ` · after-hours ${money(q.afterHours)}` : ""}{q.sameDayFee ? ` · same-day ${money(q.sameDayFee)}` : ""}{q.discount ? ` · first-ride −${money(q.discount)}` : ""} · deposit {money(q.deposit)}{q.miles != null ? ` · ${q.miles} mi${q.returnMiles != null && q.returnMiles !== q.miles ? ` out / ${q.returnMiles} back` : ""}` : ""}{q.holdUntil && r.status === "held" ? ` · held until ${new Date(q.holdUntil).toLocaleString("en-US", { timeZone: "America/Chicago" })}` : ""}</p>
-      {["quoted", "requested", "held"].includes(r.status) && r.payment === "unpaid" && !q.manual && <div className="deposit-tools">{data.square && <button disabled={saving} onClick={() => depositLink(r)}>{link ? "Refresh deposit link" : `Send ${money(q.deposit)} deposit link`}</button>}{link && <><a className="secondary-button" href={`sms:+1${r.phone}?&body=${smsBody}`}>Text link to rider</a><button type="button" onClick={() => navigator.clipboard?.writeText(link).then(() => setNotice("Link copied."))}>Copy link</button></>}</div>}
+      {["quoted", "requested", "held"].includes(r.status) && r.payment === "unpaid" && !q.manual && <div className="deposit-tools">{data.square && <label className="hold-select">Pay within<select value={holds[r.id] ?? (r.date === today ? "60" : "")} onChange={(e) => setHolds((h) => ({ ...h, [r.id]: e.target.value }))}><option value="">24 hours</option><option value="240">4 hours</option><option value="120">2 hours</option><option value="60">1 hour</option><option value="30">30 minutes</option></select></label>}{data.square && <button disabled={saving} onClick={() => depositLink(r)}>{link ? "Refresh deposit link" : `Send ${money(q.deposit)} deposit link`}</button>}{link && <><a className="secondary-button" href={`sms:+1${r.phone}?&body=${smsBody}`}>Text link to rider</a><button type="button" onClick={() => navigator.clipboard?.writeText(link).then(() => setNotice("Link copied."))}>Copy link</button></>}</div>}
       <form className="admin-toolbar" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); save({ id: r.id, status: f.get("status"), payment: f.get("payment"), verifiedTotal: f.get("verifiedTotal") ? Number(f.get("verifiedTotal")) : undefined, verifiedEnd: f.get("verifiedEnd") || undefined }); }}>
         {q.manual && <><label>Verified final fare (after any discount)<input required name="verifiedTotal" type="number" min="1" step="0.01" /></label><label>Vehicle available again<input required name="verifiedEnd" type="time" /></label></>}
         <label>Trip status<select name="status" defaultValue={r.status}><option>quoted</option><option>requested</option><option>held</option><option>confirmed</option><option>completed</option><option>canceled</option></select></label>

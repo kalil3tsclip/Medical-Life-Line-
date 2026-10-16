@@ -16,3 +16,8 @@ export async function route(a:{lon:number,lat:number},b:{lon:number,lat:number})
  if(!res.ok)throw new Error("Route lookup is unavailable. Please try again or call us.");
  const data:any=await res.json();const r=data.routes?.[0];if(!r||!Number.isFinite(r.distance)||r.distance<=0)throw new Error("We could not verify this route. Please choose different addresses or call us.");return {miles:r.distance/1609.344,minutes:Math.ceil(r.duration/60)};
 }
+// Owner settings (vehicle limits). The table creates itself on first use, so no migration is needed.
+export type Vehicle={rampLbs?:number|null,securementLbs?:number|null,usableWidthIn?:number|null,doorHeightIn?:number|null,source?:string|null,updated?:string|null};
+async function settingsTable(){await database().prepare("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL)").run();}
+export async function getVehicle():Promise<Vehicle>{await settingsTable();const row=await database().prepare("SELECT value FROM settings WHERE key='vehicle'").first<{value:string}>();try{return row?JSON.parse(row.value):{};}catch{return {};}}
+export async function saveVehicle(v:Vehicle){await settingsTable();await database().prepare("INSERT INTO settings(key,value) VALUES('vehicle',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").bind(JSON.stringify({...v,updated:new Date().toISOString()})).run();}

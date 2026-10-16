@@ -271,3 +271,52 @@ test("deposit links are refused when Square is not connected", async () => {
   assert.match(r.body.error, /Square is not connected/);
   assert.equal((await ride(id)).status, "requested");
 });
+
+// ---------- Holds never run past pickup; van limits; reminder checklist ----------
+const houstonNowMinutes = () => { const p = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Chicago", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date()); return Number(p.slice(0, 2)) * 60 + Number(p.slice(3)); };
+const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+async function phoneBooking(over = {}) {
+  globalThis.__TEST_USER = OWNER;
+  const r = await json(await admin.POST(req("/api/admin", "POST", { action: "manual", name: "Caller", phone: "7135550177", service: "ambulatory", pickup: "Addr A 1", destination: "Addr B 2", date: DAY, time: "09:00", freeAt: "10:00", fare: 70, ...over })));
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  return r.body.id;
+}
+test("same-day: a deposit hold ends at least 1 hour before pickup, or is refused when too close", { skip: houstonNowMinutes() > 20 * 60 || houstonNowMinutes() < 60 }, async () => {
+  const today = houstonDate(0), now = houstonNowMinutes();
+  const soon = await phoneBooking({ date: today, time: hhmm(now + 40), freeAt: hhmm(now + 100) });
+  const refused = await sendLink(soon);
+  assert.equal(refused.status, 400);
+  assert.match(refused.body.error, /too soon/);
+  assert.equal((await ride(soon)).status, "requested");
+  const later = await phoneBooking({ date: today, time: hhmm(Math.min(now + 180, 23 * 60)), freeAt: hhmm(Math.min(now + 230, 23 * 60 + 50)), phone: "7135550178" });
+  const ok = await sendLink(later);
+  assert.equal(ok.status, 200, JSON.stringify(ok.body));
+  const minutesLeft = (Date.parse(ok.body.holdUntil) - Date.now()) / 60000;
+  assert.ok(minutesLeft <= 125 && minutesLeft > 100, `hold ends ${minutesLeft} min from now`);
+});
+test("owner can choose a shorter payment window", async () => {
+  const id = await phoneBooking();
+  globalThis.__TEST_USER = OWNER;
+  const r = await json(await admin.POST(req("/api/admin", "POST", { action: "deposit-link", id, holdMinutes: 120 })));
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const mins = (Date.parse(r.body.holdUntil) - Date.now()) / 60000;
+  assert.ok(mins > 118 && mins <= 120);
+});
+test("van limits are saved and returned to the owner only", async () => {
+  globalThis.__TEST_USER = OWNER;
+  let g = await json(await admin.GET());
+  assert.deepEqual(g.body.vehicle, {});
+  const s = await admin.POST(req("/api/admin", "POST", { action: "vehicle", rampLbs: 800, securementLbs: 750, usableWidthIn: 30, doorHeightIn: 56, source: "ramp label" }));
+  assert.equal(s.status, 200);
+  g = await json(await admin.GET());
+  assert.equal(g.body.vehicle.rampLbs, 800);
+  assert.equal(g.body.vehicle.source, "ramp label");
+  globalThis.__TEST_USER = { email: "x@y.com" };
+  assert.equal((await admin.POST(req("/api/admin", "POST", { action: "vehicle", rampLbs: 9999 }))).status, 403);
+});
+test("reminder checklist records when the owner contacted the rider", async () => {
+  const id = await phoneBooking();
+  globalThis.__TEST_USER = OWNER;
+  assert.equal((await admin.POST(req("/api/admin", "POST", { action: "reminded", id }))).status, 200);
+  assert.ok((await ride(id)).q.remindedAt);
+});

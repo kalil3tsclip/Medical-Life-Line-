@@ -273,3 +273,13 @@ h1,h2{font-weight:800}h3{font-weight:700}
 .day-head .admin-toolbar{flex-wrap:wrap;align-items:center}
 .day-head .admin-toolbar input{width:auto;flex:0 0 auto}
 .day-head .admin-toolbar button{padding:9px 12px}
+.reminder-list{list-style:none;padding:0;margin:0 0 20px;display:grid;gap:8px}
+.reminder-list li{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 12px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff}
+.reminder-list li.done{background:#f3faf5;border-color:#bde4c8}
+.reminder-actions{display:flex;align-items:center;gap:12px}
+.reminder-actions a{font-weight:800;color:var(--blue)}
+.reminder-actions em{font-style:normal;color:#0e6a37;font-weight:700;font-size:.88rem}
+.reminder-actions button{padding:8px 14px}
+.vehicle-card{margin:10px 0 24px}.vehicle-card summary{font-weight:900;cursor:pointer;color:var(--navy)}
+.hold-select{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700}
+.hold-select select{width:auto!important;padding:8px!important}

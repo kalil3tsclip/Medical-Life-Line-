@@ -94,3 +94,34 @@ test("legacy price() wrapper still works", () => {
   assert.equal(price(25, "ambulatory", NOON, NOON + 240, false).total, 182.5);
   assert.equal(price(25, "ambulatory", NOON, null, false).total, 91.25);
 });
+
+import { houstonToUtcMs, holdDeadline } from "./time.ts";
+test("Houston time converts correctly across daylight saving", () => {
+  assert.equal(new Date(houstonToUtcMs("2026-10-16", 9 * 60)).toISOString(), "2026-10-16T14:00:00.000Z"); // CDT
+  assert.equal(new Date(houstonToUtcMs("2026-12-16", 9 * 60)).toISOString(), "2026-12-16T15:00:00.000Z"); // CST
+});
+test("deposit hold never runs past pickup", () => {
+  const now = Date.parse("2026-10-16T13:00:00Z"); // 8:00 a.m. Houston
+  // Pickup 2:00 p.m. today: 24h window is cut to 1h before pickup (1:00 p.m. Houston = 18:00Z)
+  assert.equal(new Date(holdDeadline({ now, date: "2026-10-16", start: 14 * 60 })!).toISOString(), "2026-10-16T18:00:00.000Z");
+  // Owner-chosen 2-hour window applies when it is earlier
+  assert.equal(holdDeadline({ now, date: "2026-10-16", start: 14 * 60, holdMinutes: 120 }), now + 2 * 3600000);
+  // Pickup in 45 minutes: too late for an online deposit
+  assert.equal(holdDeadline({ now, date: "2026-10-16", start: 8 * 60 + 45 }), null);
+  // Pickup in 3 days: full 24 hours
+  assert.equal(holdDeadline({ now, date: "2026-10-19", start: 9 * 60 }), now + 24 * 3600000);
+});
+
+import { fitIssues } from "./fit.ts";
+test("wheelchair fit: missing van info and missing weight trigger review", () => {
+  const issues = fitIssues({ service: "wheelchair", wheelchairType: "standard" }, {});
+  assert.ok(issues.some((i) => i.startsWith("van limits not recorded")));
+  assert.ok(issues.includes("ask rider + chair weight"));
+});
+test("wheelchair fit: over the lower of ramp and securement limits is flagged", () => {
+  const v = { rampLbs: 800, securementLbs: 600, usableWidthIn: 30, doorHeightIn: 56 };
+  assert.deepEqual(fitIssues({ service: "wheelchair", wheelchairType: "standard", combinedWeight: 450 }, v), []);
+  assert.ok(fitIssues({ service: "wheelchair", wheelchairType: "standard", combinedWeight: 650 }, v)[0].startsWith("OVER van limit"));
+  assert.ok(fitIssues({ service: "wheelchair", wheelchairType: "power", combinedWeight: 400 }, v)[0].includes("van 30 in"));
+  assert.deepEqual(fitIssues({ service: "ambulatory" }, {}), []);
+});
