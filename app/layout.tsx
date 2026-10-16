@@ -54,7 +54,7 @@ const business = {
   alternateName: "Medical Life Line",
   description: DESCRIPTION,
   url: SITE,
-  logo: `${SITE}/medical-life-line-logo.jpg`,
+  logo: `${SITE}/medical-life-line-logo-fixed.jpg`,
   image: `${SITE}/og-image.jpg`,
   telephone: "+1-346-909-7822",
   email: "info@medilifelinetrans.com",

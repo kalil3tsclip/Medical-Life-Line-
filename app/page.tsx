@@ -20,6 +20,9 @@ const reviews = [
   "The entire transport was smooth, professional, and stress-free.",
 ];
 
+// Set to "/hero-van.mp4" once the owner's van video is added to public/. Until then the photo is used with a slow camera move.
+const HERO_VIDEO: string | null = null;
+
 export default function Home() {
   return <main><SiteHeader />
     <section className="hero">
@@ -29,7 +32,7 @@ export default function Home() {
           <source type="image/webp" srcSet="/wheelchair-transport-houston.webp" />
           <img className="hero-image" src="/wheelchair-transport-houston.jpg" width={1672} height={941} fetchPriority="high" alt="Wheelchair passenger being safely assisted into a Medical Life Line accessible vehicle in Houston" />
         </picture>
-        <div className="hero-glint" />
+        {HERO_VIDEO ? <video className="hero-video" src={HERO_VIDEO} poster="/wheelchair-transport-houston.jpg" autoPlay muted loop playsInline preload="metadata" aria-hidden="true" /> : <div className="hero-glint" />}
       </div>
       <div className="hero-shade" />
       <div className="hero-inner page-width">
@@ -47,7 +50,7 @@ export default function Home() {
 
     <section className="services-preview section page-width"><div className="section-heading"><span>Our Services</span><h2>Medical transportation built around your needs</h2><p>Wheelchair and ambulatory rides, delivered with care, patience, and dependable communication.</p></div><div className="service-grid">{services.map(([Icon, title, body]: any) => <article className="service-card" key={title}><Icon /><h3>{title}</h3><p>{body}</p><a href="/services" aria-label={`Learn more about ${title}`}><ArrowRight /></a></article>)}</div></section>
 
-    <section className="about-band"><div className="page-width about-grid"><div className="about-logo"><img src="/medical-life-line-logo.jpg" alt="Medical Life Line" loading="lazy" width={600} height={220} /></div><div><span className="eyebrow red">About Medical Life Line</span><h2>Serving Our Community Since 2023</h2><p>Medical Life Line was founded with one clear mission: make wheelchair transportation safer, calmer, and more dependable. We understand that every trip carries a person, a family, and a schedule that matters.</p><ul className="check-list"><li><CheckCircle2 /> Respectful door-to-door assistance</li><li><CheckCircle2 /> Clean wheelchair-accessible vehicle</li><li><CheckCircle2 /> Clear communication before every ride</li></ul><a className="secondary-button" href="/about">Our Story <ArrowRight /></a></div></div></section>
+    <section className="about-band"><div className="page-width about-grid"><div className="about-logo"><img src="/medical-life-line-logo-wide.png" alt="Medical Life Line" loading="lazy" width={914} height={318} /></div><div><span className="eyebrow red">About Medical Life Line</span><h2>Serving Our Community Since 2023</h2><p>Medical Life Line was founded with one clear mission: make wheelchair transportation safer, calmer, and more dependable. We understand that every trip carries a person, a family, and a schedule that matters.</p><ul className="check-list"><li><CheckCircle2 /> Respectful door-to-door assistance</li><li><CheckCircle2 /> Clean wheelchair-accessible vehicle</li><li><CheckCircle2 /> Clear communication before every ride</li></ul><a className="secondary-button" href="/about">Our Story <ArrowRight /></a></div></div></section>
 
     <section className="steps-section"><div className="page-width"><div className="section-heading light"><span>Simple. Convenient. Stress-free.</span><h2>How It Works</h2></div><div className="steps"><article><b>1</b><CalendarCheck /><h3>Request a Quote</h3><p>Enter your addresses and trip details.</p></article><article><b>2</b><Phone /><h3>Confirm Your Ride</h3><p>We review your needs and confirm availability.</p></article><article><b>3</b><Wheelchair /><h3>We Pick You Up</h3><p>We arrive ready to assist you safely.</p></article><article><b>4</b><HeartHandshake /><h3>Arrive With Care</h3><p>Reach your destination comfortably.</p></article></div><div className="center"><a href="/how-it-works" className="light-button">See the Full Process <ArrowRight /></a></div></div></section>
 

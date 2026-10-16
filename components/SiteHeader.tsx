@@ -23,10 +23,9 @@ export function SiteHeader() {
           </div>)}
         </div>
       </div>
-      <div className="owner-access-bar"><a href="/admin">Owner Login →</a></div>
       <header className="site-header">
         <a href="/" className="brand" aria-label="Medical Life Line home">
-          <img src="/medical-life-line-logo.jpg" alt="Medical Life Line non-emergency medical transportation" width={255} height={78} />
+          <img src="/medical-life-line-logo-wide.png" alt="Medical Life Line non-emergency medical transportation" width={914} height={318} />
         </a>
         <nav className="desktop-nav" aria-label="Main navigation">
           {nav.map(([label, href]) => <a key={href} href={href}>{label}</a>)}
@@ -40,7 +39,6 @@ export function SiteHeader() {
           <summary className="menu-button" aria-label="Open menu"><Menu /></summary>
           <nav id="mobile-menu" className="mobile-nav" aria-label="Mobile navigation">
             {nav.map(([label, href]) => <a key={href} href={href}>{label}</a>)}
-            <a href="/admin">Owner Login</a>
             <a href="/quote" className="primary-button">Get an Instant Quote</a>
             <a href="tel:+13469097822" aria-label="Call Medical Life Line at 346-909-7822" className="mobile-call"><Phone size={18} /> (346) 909-7822</a>
             <a href="sms:+13469097822" aria-label="Text Medical Life Line at 346-909-7822" className="mobile-call"><MessageSquare size={18} /> Text (346) 909-7822</a>

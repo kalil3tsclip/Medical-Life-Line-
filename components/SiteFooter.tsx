@@ -11,7 +11,7 @@ export function SiteFooter() {
       </div>
       <div className="footer-grid page-width">
         <div className="footer-brand">
-          <img src="/medical-life-line-logo.jpg" alt="Medical Life Line" loading="lazy" width={270} height={96} />
+          <img src="/medical-life-line-logo-wide.png" alt="Medical Life Line" loading="lazy" width={914} height={318} />
           <p>Reliable wheelchair transportation for medical appointments, dialysis, discharges, rehabilitation visits, and essential trips.</p>
         </div>
         <div><h2>Quick Links</h2><a href="/services">Services</a><a href="/how-it-works">How It Works</a><a href="/about">About Us</a><a href="/reviews">Reviews</a><a href="/faq">FAQ</a><a href="/policies">Booking Policy</a><a href="/contact">Contact</a></div>
