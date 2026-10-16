@@ -38,7 +38,7 @@ Without these keys the site still works: deposits are recorded by hand on each r
 
 ## Hosting on Cloudflare (Workers + D1)
 
-- **Build:** Workers Builds connected to this GitHub repo. Build command `pnpm build`, deploy command `pnpm run deploy`. Build variable `D1_DATABASE_ID` = the ID of the `medical-life-line` D1 database.
+- **Build:** Workers Builds connected to this GitHub repo. Build command `pnpm build`, deploy command `pnpm run deploy`. The `medical-life-line` D1 database ID is set in `vite.config.ts` and used automatically on Cloudflare builds (override with the `D1_DATABASE_ID` build variable).
 - **Database:** `pnpm run deploy` first runs `db/init.sql` (creates missing tables only; never changes data), then deploys.
 - **Owner sign-in:** Cloudflare Access (email + one-time code). The server verifies the signed `Cf-Access-Jwt-Assertion` token and only accepts `OWNER_EMAILS` (default vgcaldwell89@gmail.com). Worker variables: `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`. Without them, nobody can open the dashboard.
 - **Other variables** (Worker → Settings → Variables and Secrets; secrets marked secret): `SITE_URL`, `GOOGLE_MAPS_BROWSER_KEY`, `SQUARE_ACCESS_TOKEN` (secret), `SQUARE_LOCATION_ID`, `SQUARE_ENVIRONMENT`, `SQUARE_WEBHOOK_SIGNATURE_KEY` (secret). `keep_vars` keeps them across deploys.

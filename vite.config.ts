@@ -16,7 +16,10 @@ const managedLinux = readExecutionProfile() === "managed-linux";
 // Cloudflare deploys read these at build time (Workers Builds → Settings → Build variables):
 //   D1_DATABASE_ID  the ID of the "medical-life-line" D1 database
 //   WORKER_NAME     optional, defaults to "medical-life-line"
-const databaseId = process.env.D1_DATABASE_ID || SITE_CREATOR_PLACEHOLDER_DATABASE_ID;
+// The "medical-life-line" D1 database on the owner's Cloudflare account (an ID, not a secret).
+const MEDICAL_LIFE_LINE_DATABASE_ID = "a8c16ee3-e9f7-4995-860b-53b40d18da1e";
+// Local development keeps using a throwaway local database; Cloudflare builds use the real one.
+const databaseId = process.env.D1_DATABASE_ID || (process.env.WORKERS_CI || process.env.CI ? MEDICAL_LIFE_LINE_DATABASE_ID : SITE_CREATOR_PLACEHOLDER_DATABASE_ID);
 
 const localBindingConfig = {
   name: process.env.WORKER_NAME || "medical-life-line",
