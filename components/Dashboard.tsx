@@ -11,6 +11,7 @@ const money = (n?: number | null) => (n == null ? "—" : `$${n.toFixed(2)}`);
 const dayLabel = (date: string) => new Date(date + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
 const ACTIVE = ["requested", "held", "confirmed", "completed"];
 const fmtPhone = (p: string) => (p.length === 10 ? `(${p.slice(0, 3)}) ${p.slice(3, 6)}-${p.slice(6)}` : p);
+const WHEELCHAIR: Record<string, string> = { standard: "standard wheelchair", wide: "wide / bariatric wheelchair", power: "power wheelchair or scooter" };
 const STEPS: Record<string, string> = { none: "No steps", few: "1–3 steps", many: "More than 3 steps" };
 
 function parse(r: Ride) {
@@ -59,12 +60,18 @@ export function Dashboard() {
     return { scheduled, got, owed, awaitingDeposit };
   }, [rides, today, weekEnd]);
 
-  const attention = useMemo(() => rides.filter((r) => (r.date >= today && ["quoted", "requested", "held", "confirmed"].includes(r.status)) || (r.status === "completed" && r.payment !== "paid")).map((r) => {
+  const attention = useMemo(() => rides.filter((r) => { const { q } = parse(r); return (r.date >= today && ["quoted", "requested", "held", "confirmed"].includes(r.status)) || (r.status === "completed" && r.payment !== "paid") || q.depositConflict || q.lateDeposit || q.underpaid || q.paidAfterCancel || (q.refunded && r.payment !== "refunded"); }).map((r) => {
     const { d, q } = parse(r); const reasons: string[] = [];
     if (q.manual) reasons.push("needs a price");
     if (r.status === "requested") reasons.push("new request: review and send deposit link");
     if (r.status === "held" && r.payment === "unpaid") reasons.push(q.holdUntil && q.holdUntil < new Date().toISOString() ? "deposit hold expired" : "waiting on deposit");
-    if (q.depositConflict) reasons.push("deposit paid but time conflicts: call rider");
+    if (q.depositConflict) reasons.push("deposit paid but time conflicts: call rider, refund or move");
+    if (q.lateDeposit) reasons.push("deposit paid after hold expired: confirm or refund");
+    if (q.underpaid) reasons.push(`deposit short: paid ${money(q.depositPaid)} of ${money(q.deposit)}`);
+    if (q.paidAfterCancel) reasons.push("paid after ride was canceled: refund in Square");
+    if (q.refunded && r.payment !== "refunded") reasons.push(`partial refund ${money(q.refunded)}`);
+    if (d.wheelchairType && d.wheelchairType !== "standard" && r.status !== "confirmed") reasons.push(`check fit: ${WHEELCHAIR[d.wheelchairType] || d.wheelchairType}${d.combinedWeight ? `, about ${d.combinedWeight} lb` : ""}`);
+    else if (d.combinedWeight && d.combinedWeight >= 300 && r.status !== "confirmed") reasons.push(`check weight limit: about ${d.combinedWeight} lb`);
     if (d.returnPlan === "call") reasons.push("return time to be arranged");
     if (q.ownerReview && !q.manual) reasons.push("long trip: double-check route");
     if (q.tightArrival) reasons.push("tight for appointment time");
@@ -103,6 +110,7 @@ export function Dashboard() {
           {d.round && <p><b>Return</b> {d.returnPlan === "call" ? "to be arranged: rider will call" : hhmmToClock(d.returnTime)}</p>}
           {d.riderName && <p>Booked by {r.name}</p>}
           {d.steps && d.steps !== "none" && <p><b>Access:</b> {STEPS[d.steps]}</p>}
+          {d.wheelchairType && <p><b>Chair:</b> {WHEELCHAIR[d.wheelchairType] || d.wheelchairType}{d.combinedWeight ? ` · about ${d.combinedWeight} lb with chair` : ""}</p>}
           {d.notes && <p className="ride-notes">📝 {d.notes}</p>}
           <p><a href={`tel:+1${r.phone}`}>Call {fmtPhone(r.phone)}</a> · <a href={`sms:+1${r.phone}`}>Text</a> · {money(q.total)} · {r.payment}</p>
         </div></li>; })}</ol>}

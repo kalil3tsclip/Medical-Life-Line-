@@ -36,6 +36,13 @@ Square setup (once the site is hosted):
 
 Without these keys the site still works: deposits are recorded by hand on each ride card.
 
+## Tests
+
+- `pnpm test:pricing`: fare rules (12 checks).
+- `pnpm test:flow`: runs the real quote, owner and Square-notification code against a real SQLite database (the engine behind Cloudflare D1), with signed Square notifications simulated: owner-only access, calendar conflicts, phone bookings, 24-hour holds, successful/failed/duplicate/late/short payments, payment after cancel, refunds, and Square not connected (19 checks).
+
+These do not replace a live Square **sandbox** test on the hosted site before launch.
+
 ## Pricing
 
 Fare rules live in `lib/pricing.ts`. Run `pnpm test:pricing` after any change.

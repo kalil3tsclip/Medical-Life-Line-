@@ -40,6 +40,9 @@ export async function POST(r:Request){if(!sameOrigin(r)||!await owner())return r
   const q=JSON.parse(ride.estimate);if(q.manual||!q.total)throw new Error("Enter the verified final fare first.");
   if(!["quoted","requested","held"].includes(ride.status))throw new Error("Deposit links are for rides that are not yet confirmed.");
   const deposit=q.deposit??cents(q.total*RATES.depositShare);
+  const now=new Date().toISOString();
+  const clash=await d.prepare("SELECT id FROM ride_requests WHERE id<>? AND date=? AND start<? AND end>? AND (status='confirmed' OR (status='held' AND json_extract(estimate,'$.holdUntil')>?)) UNION ALL SELECT id FROM availability_blocks WHERE date=? AND start<? AND end>?").bind(id,ride.date,ride.end,ride.start,now,ride.date,ride.end,ride.start).first();
+  if(clash)throw new Error("This time overlaps a confirmed ride, another held ride, or a blocked time. Resolve that first.");
   const link=await createDepositLink({rideId:id,amount:deposit,date:ride.date,name:ride.name,email:ride.email||undefined,phone:ride.phone});
   const holdUntil=new Date(Date.now()+24*3600000).toISOString();
   const next={...q,deposit,squareOrderId:link.orderId,squareLinkId:link.linkId,depositUrl:link.url,holdUntil};

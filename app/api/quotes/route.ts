@@ -8,10 +8,10 @@ const input=z.object({
  appointmentTime:z.union([z.literal(""),hhmm]).optional(),
  round:z.boolean().optional(),returnPlan:z.enum(["scheduled","call"]).optional(),returnTime:z.union([z.literal(""),hhmm]).optional(),
  forSomeoneElse:z.boolean().optional(),riderName:z.string().trim().max(100).optional(),
- steps:z.enum(["none","few","many"]).optional(),notes:z.string().trim().max(500).optional(),
+ steps:z.enum(["none","few","many"]).optional(),wheelchairType:z.enum(["standard","wide","power"]).optional(),combinedWeight:z.number().int().min(50).max(1500).optional(),notes:z.string().trim().max(500).optional(),
  first:z.boolean(),consent:z.literal(true),website:z.string().max(0),key:z.string().uuid()});
 const PHONE="(346) 909-7822";
-function detailsOf(b:z.infer<typeof input>,round:boolean,returnPlan:string|null){return JSON.stringify({pickup:b.pickup.label,destination:b.destination.label,service:b.service,time:b.time,appointmentTime:b.appointmentTime||null,round,returnPlan,returnTime:round&&returnPlan==="scheduled"?b.returnTime||null:null,riderName:b.forSomeoneElse&&b.riderName?b.riderName:null,bookedForSomeoneElse:!!b.forSomeoneElse,steps:b.service==="wheelchair"?b.steps||null:null,notes:b.notes||null,source:"website"});}
+function detailsOf(b:z.infer<typeof input>,round:boolean,returnPlan:string|null){return JSON.stringify({pickup:b.pickup.label,destination:b.destination.label,service:b.service,time:b.time,appointmentTime:b.appointmentTime||null,round,returnPlan,returnTime:round&&returnPlan==="scheduled"?b.returnTime||null:null,riderName:b.forSomeoneElse&&b.riderName?b.riderName:null,bookedForSomeoneElse:!!b.forSomeoneElse,steps:b.service==="wheelchair"?b.steps||null:null,wheelchairType:b.service==="wheelchair"?b.wheelchairType||null:null,combinedWeight:b.service==="wheelchair"?b.combinedWeight??null:null,notes:b.notes||null,source:"website"});}
 export async function POST(r:Request){if(!sameOrigin(r))return reply({error:"Please submit from our website."},403);try{
  const b=input.parse(await r.json());if(!validDate(b.date))throw new Error("Choose a date within the next 90 days.");
  if(b.forSomeoneElse&&!b.riderName)throw new Error("Enter the rider's name.");
