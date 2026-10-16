@@ -11,7 +11,7 @@ await build({
   tsconfig: path.join(root, "tsconfig.json"),
   plugins: [{ name: "stubs", setup(b) {
     b.onResolve({ filter: /^cloudflare:workers$/ }, () => ({ path: path.join(root, "tests/stubs/cloudflare-workers.mjs") }));
-    b.onResolve({ filter: /^@\/app\/chatgpt-auth$/ }, () => ({ path: path.join(root, "tests/stubs/chatgpt-auth.mjs") }));
+    b.onResolve({ filter: /^next\/headers$/ }, () => ({ path: path.join(root, "tests/stubs/next-headers.mjs") }));
   } }],
 });
 console.log("built", out);

@@ -7,6 +7,23 @@ import { createHmac, randomUUID } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createD1 } from "./d1-sqlite.mjs";
+import { generateKeyPairSync, createSign } from "node:crypto";
+
+// ---- Real Cloudflare Access tokens, signed with a test key; the site fetches the matching public key. ----
+const TEAM = "mll-test.cloudflareaccess.com", AUD = "test-aud-tag";
+const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+const { privateKey: wrongKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+const JWK = { ...publicKey.export({ format: "jwk" }), kid: "k1", alg: "RS256", use: "sig" };
+const b64u = (o) => Buffer.from(typeof o === "string" ? o : JSON.stringify(o)).toString("base64url");
+function accessToken(email, over = {}, key = privateKey) {
+  const now = Math.floor(Date.now() / 1000);
+  const head = b64u({ alg: "RS256", kid: "k1", typ: "JWT" });
+  const body = b64u({ aud: [AUD], email, iss: `https://${TEAM}`, iat: now, nbf: now, exp: now + 3600, sub: "u1", ...over });
+  const sig = createSign("RSA-SHA256").update(`${head}.${body}`).sign(key).toString("base64url");
+  return `${head}.${body}.${sig}`;
+}
+// __TEST_USER keeps the old test vocabulary: null = signed out, {email} = signed in as that email.
+globalThis.__TEST_HEADERS = () => (globalThis.__TEST_RAW_HEADERS ?? (globalThis.__TEST_USER ? { "cf-access-jwt-assertion": accessToken(globalThis.__TEST_USER.email) } : {}));
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const BUILD = process.env.BUILD_DIR || path.join(here, ".build");
@@ -60,6 +77,7 @@ before(async () => {
   [quotes, admin, webhook, availability] = await Promise.all(["quotes", "admin", "webhook", "availability"].map(load));
   globalThis.fetch = async (url, init) => {
     url = String(url);
+    if (url === `https://${TEAM}/cdn-cgi/access/certs`) return new Response(JSON.stringify({ keys: [JWK] }));
     if (url.includes("router.project-osrm.org")) return new Response(JSON.stringify({ routes: [{ distance: routeMiles * 1609.344, duration: routeMinutes * 60 }] }));
     if (url.includes("/v2/online-checkout/payment-links")) {
       const body = JSON.parse(init.body); squareCalls.push(body);
@@ -71,7 +89,8 @@ before(async () => {
 });
 beforeEach(() => {
   db = createD1(path.join(here, "../drizzle/0000_fuzzy_justice.sql"));
-  globalThis.__TEST_ENV = { DB: db, SQUARE_ACCESS_TOKEN: "sandbox-token", SQUARE_LOCATION_ID: "LOC1", SQUARE_ENVIRONMENT: "sandbox", SQUARE_WEBHOOK_SIGNATURE_KEY: SIG_KEY, SITE_URL: SITE };
+  globalThis.__TEST_ENV = { DB: db, SQUARE_ACCESS_TOKEN: "sandbox-token", SQUARE_LOCATION_ID: "LOC1", SQUARE_ENVIRONMENT: "sandbox", SQUARE_WEBHOOK_SIGNATURE_KEY: SIG_KEY, SITE_URL: SITE, ACCESS_TEAM_DOMAIN: TEAM, ACCESS_AUD: AUD };
+  globalThis.__TEST_RAW_HEADERS = undefined;
   globalThis.__TEST_USER = null;
   routeMiles = 12; routeMinutes = 25; squareCalls = [];
 });
@@ -319,4 +338,27 @@ test("reminder checklist records when the owner contacted the rider", async () =
   globalThis.__TEST_USER = OWNER;
   assert.equal((await admin.POST(req("/api/admin", "POST", { action: "reminded", id }))).status, 200);
   assert.ok((await ride(id)).q.remindedAt);
+});
+
+
+// ---------- Owner sign-in (Cloudflare Access) cannot be faked ----------
+async function adminAs(rawHeaders) { globalThis.__TEST_RAW_HEADERS = rawHeaders; const status = (await admin.GET()).status; globalThis.__TEST_RAW_HEADERS = undefined; return status; }
+test("old ChatGPT-style identity headers are ignored", async () => {
+  assert.equal(await adminAs({ "oai-authenticated-user-id": "x", "oai-authenticated-user-email": OWNER.email }), 403);
+});
+test("tokens that are forged, for another app, from another issuer, or expired are rejected", async () => {
+  assert.equal(await adminAs({ "cf-access-jwt-assertion": accessToken(OWNER.email, {}, wrongKey) }), 403);
+  assert.equal(await adminAs({ "cf-access-jwt-assertion": accessToken(OWNER.email, { aud: ["other-app"] }) }), 403);
+  assert.equal(await adminAs({ "cf-access-jwt-assertion": accessToken(OWNER.email, { iss: "https://evil.cloudflareaccess.com" }) }), 403);
+  assert.equal(await adminAs({ "cf-access-jwt-assertion": accessToken(OWNER.email, { exp: Math.floor(Date.now() / 1000) - 600 }) }), 403);
+  assert.equal(await adminAs({ "cf-access-jwt-assertion": "not.a.token" }), 403);
+  const t = accessToken("someone@else.com"); const [h, , sig] = t.split(".");
+  assert.equal(await adminAs({ "cf-access-jwt-assertion": `${h}.${b64u({ aud: [AUD], email: OWNER.email, iss: `https://${TEAM}`, exp: Math.floor(Date.now() / 1000) + 3600 })}.${sig}` }), 403); // email swapped
+});
+test("a valid owner token works; email case does not matter", async () => {
+  assert.equal(await adminAs({ "cf-access-jwt-assertion": accessToken("VGCaldwell89@Gmail.com") }), 200);
+});
+test("without Access settings on the host, nobody gets in", async () => {
+  globalThis.__TEST_ENV.ACCESS_AUD = undefined;
+  assert.equal(await adminAs({ "cf-access-jwt-assertion": accessToken(OWNER.email) }), 403);
 });

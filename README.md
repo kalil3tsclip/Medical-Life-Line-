@@ -36,10 +36,19 @@ Square setup (once the site is hosted):
 
 Without these keys the site still works: deposits are recorded by hand on each ride card.
 
+## Hosting on Cloudflare (Workers + D1)
+
+- **Build:** Workers Builds connected to this GitHub repo. Build command `pnpm build`, deploy command `pnpm run deploy`. Build variable `D1_DATABASE_ID` = the ID of the `medical-life-line` D1 database.
+- **Database:** `pnpm run deploy` first runs `db/init.sql` (creates missing tables only; never changes data), then deploys.
+- **Owner sign-in:** Cloudflare Access (email + one-time code). The server verifies the signed `Cf-Access-Jwt-Assertion` token and only accepts `OWNER_EMAILS` (default vgcaldwell89@gmail.com). Worker variables: `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`. Without them, nobody can open the dashboard.
+- **Other variables** (Worker → Settings → Variables and Secrets; secrets marked secret): `SITE_URL`, `GOOGLE_MAPS_BROWSER_KEY`, `SQUARE_ACCESS_TOKEN` (secret), `SQUARE_LOCATION_ID`, `SQUARE_ENVIRONMENT`, `SQUARE_WEBHOOK_SIGNATURE_KEY` (secret). `keep_vars` keeps them across deploys.
+- **Private test:** keep the workers.dev address behind Cloudflare Access until launch. Square's webhook path `/api/square-webhook` needs an Access bypass to receive sandbox notifications (the route verifies Square's signature itself).
+- **Launch:** move medilifelinetrans.com only after the sandbox checks pass and the owner approves; export any new ChatGPT Sites bookings first.
+
 ## Tests
 
 - `pnpm test:pricing`: fare rules, Houston-time hold deadlines and wheelchair fit checks (16 checks).
-- `pnpm test:flow`: runs the real quote, owner and Square-notification code against a real SQLite database (the engine behind Cloudflare D1), with signed Square notifications simulated: owner-only access, calendar conflicts, phone bookings, 24-hour holds, successful/failed/duplicate/late/short payments, payment after cancel, refunds, and Square not connected (23 checks).
+- `pnpm test:flow`: runs the real quote, owner and Square-notification code against a real SQLite database (the engine behind Cloudflare D1), with signed Square notifications simulated: owner-only access (real signed Cloudflare Access tokens; forged, expired, wrong-app and old ChatGPT headers rejected), calendar conflicts, phone bookings, 24-hour holds, successful/failed/duplicate/late/short payments, payment after cancel, refunds, and Square not connected (27 checks).
 
 These do not replace a live Square **sandbox** test on the hosted site before launch.
 

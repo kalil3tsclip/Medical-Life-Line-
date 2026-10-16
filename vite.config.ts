@@ -13,15 +13,23 @@ const { d1, r2 } = hostingConfig;
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 const managedLinux = readExecutionProfile() === "managed-linux";
 
+// Cloudflare deploys read these at build time (Workers Builds → Settings → Build variables):
+//   D1_DATABASE_ID  the ID of the "medical-life-line" D1 database
+//   WORKER_NAME     optional, defaults to "medical-life-line"
+const databaseId = process.env.D1_DATABASE_ID || SITE_CREATOR_PLACEHOLDER_DATABASE_ID;
+
 const localBindingConfig = {
+  name: process.env.WORKER_NAME || "medical-life-line",
   main: "vinext/server/fetch-handler",
+  // Keep variables set in the Cloudflare dashboard (Access, Square, Google, site URL) across deploys.
+  keep_vars: true,
   compatibility_flags: ["nodejs_compat"],
   d1_databases: d1
     ? [
         {
           binding: d1,
-          database_name: "site-creator-d1",
-          database_id: SITE_CREATOR_PLACEHOLDER_DATABASE_ID,
+          database_name: "medical-life-line",
+          database_id: databaseId,
         },
       ]
     : [],

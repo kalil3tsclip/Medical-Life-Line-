@@ -1,8 +1,8 @@
 import { env } from "cloudflare:workers";
-import { getChatGPTUser } from "@/app/chatgpt-auth";
+import { isOwner } from "@/lib/auth";
 export { price, quote, timeFee, RATES } from "@/lib/pricing";
 export function database(){ if(!env.DB) throw new Error("Booking storage is unavailable. Please call (346) 909-7822."); return env.DB; }
-export async function owner(){const u=await getChatGPTUser();return !!u && u.email.toLowerCase()==="vgcaldwell89@gmail.com";}
+export async function owner(){return isOwner();}
 export function sameOrigin(r:Request){return r.headers.get("origin")===new URL(r.url).origin;}
 export function reply(data:unknown,status=200){return Response.json(data,{status,headers:{"Cache-Control":"no-store"}});}
 export function today(){return new Intl.DateTimeFormat("en-CA",{timeZone:"America/Chicago",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());}

@@ -13,7 +13,9 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "test:pricing": "node --experimental-strip-types --no-warnings --test lib/pricing.test.ts",
-    "test:flow": "node tests/build-routes.mjs tests/.build && node --no-warnings --test tests/booking-flow.test.mjs"
+    "test:flow": "node tests/build-routes.mjs tests/.build && node --no-warnings --test tests/booking-flow.test.mjs",
+    "db:init:remote": "node ./node_modules/wrangler/bin/wrangler.js d1 execute DB --remote --yes --config dist/server/wrangler.json --file db/init.sql",
+    "deploy": "pnpm run db:init:remote && node ./node_modules/wrangler/bin/wrangler.js deploy --config dist/server/wrangler.json"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
