@@ -9,7 +9,7 @@ import { headers } from "next/headers";
 //
 // Host settings (not secret, but set on the host, never in code):
 //   ACCESS_TEAM_DOMAIN  e.g. medicallifeline.cloudflareaccess.com
-//   ACCESS_AUD          the Application Audience (AUD) tag of the Access application
+//   ACCESS_AUD          the Application Audience (AUD) tag(s) of the Access application(s), comma-separated
 //   OWNER_EMAILS        comma-separated, defaults to the owner's address
 type AuthEnv = { ACCESS_TEAM_DOMAIN?: string; ACCESS_AUD?: string; OWNER_EMAILS?: string };
 const cfg = () => env as unknown as AuthEnv;
@@ -53,7 +53,9 @@ export async function verifyAccessToken(token: string | null | undefined, nowMs 
     if (!ok) return null;
     const now = Math.floor(nowMs / 1000);
     if (claims.iss !== `https://${domain}`) return null;
-    if (!(Array.isArray(claims.aud) ? claims.aud.includes(aud) : claims.aud === aud)) return null;
+    const allowed = aud.split(",").map((a) => a.trim()).filter(Boolean); // one AUD per Access application
+    const got: string[] = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
+    if (!got.some((a) => allowed.includes(a))) return null;
     if (typeof claims.exp !== "number" || claims.exp < now - 30) return null;
     if (typeof claims.nbf === "number" && claims.nbf > now + 30) return null;
     if (typeof claims.email !== "string" || !claims.email.includes("@")) return null;

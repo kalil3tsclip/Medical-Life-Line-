@@ -384,3 +384,8 @@ test("late-night times are refused online and point to a phone call", async () =
     assert.match(r.body.error, /call/);
   }
 });
+test("several Access applications (comma-separated AUD tags) are accepted, others are not", async () => {
+  globalThis.__TEST_ENV.ACCESS_AUD = "other-app-aud, " + AUD;
+  assert.equal(await adminAs({ "cf-access-jwt-assertion": accessToken(OWNER.email) }), 200);
+  assert.equal(await adminAs({ "cf-access-jwt-assertion": accessToken(OWNER.email, { aud: ["third-app"] }) }), 403);
+});
