@@ -389,3 +389,8 @@ test("several Access applications (comma-separated AUD tags) are accepted, other
   assert.equal(await adminAs({ "cf-access-jwt-assertion": accessToken(OWNER.email) }), 200);
   assert.equal(await adminAs({ "cf-access-jwt-assertion": accessToken(OWNER.email, { aud: ["third-app"] }) }), 403);
 });
+test("owner token in the CF_Authorization cookie works; a forged cookie does not", async () => {
+  assert.equal(await adminAs({ cookie: "theme=light; CF_Authorization=" + accessToken(OWNER.email) }), 200);
+  assert.equal(await adminAs({ cookie: "CF_Authorization=" + accessToken(OWNER.email, {}, wrongKey) }), 403);
+  assert.equal(await adminAs({ cookie: "CF_Authorization=" + accessToken("someone@else.com") }), 403);
+});

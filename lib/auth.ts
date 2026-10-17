@@ -72,7 +72,13 @@ export function ownerEmails() {
 /** The signed-in person (via Cloudflare Access), or null. */
 export async function currentIdentity(): Promise<Identity | null> {
   const h = await headers();
-  return verifyAccessToken(h.get("cf-access-jwt-assertion"));
+  // Cloudflare adds the header on paths covered by the Access application. Other owner paths
+  // (e.g. /api/admin when only /admin is protected) still carry the CF_Authorization cookie,
+  // which is the same signed token and goes through the same verification.
+  const fromHeader = await verifyAccessToken(h.get("cf-access-jwt-assertion"));
+  if (fromHeader) return fromHeader;
+  const cookie = (h.get("cookie") || "").split(/;\s*/).find((c) => c.startsWith("CF_Authorization="));
+  return verifyAccessToken(cookie ? decodeURIComponent(cookie.slice("CF_Authorization=".length)) : null);
 }
 
 export async function isOwner() {
