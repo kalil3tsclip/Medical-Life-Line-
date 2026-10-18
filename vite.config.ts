@@ -24,8 +24,15 @@ const databaseId = process.env.D1_DATABASE_ID || (process.env.WORKERS_CI || proc
 const localBindingConfig = {
   name: process.env.WORKER_NAME || "medical-life-line",
   main: "vinext/server/fetch-handler",
-  // Keep variables set in the Cloudflare dashboard (Access, Square, Google, site URL) across deploys.
+  // Keep variables set in the Cloudflare dashboard (Square, Google, etc.) across deploys.
   keep_vars: true,
+  // Owner sign-in through Cloudflare Access. These identify the owner's Access application; they are not secrets.
+  vars: {
+    ACCESS_TEAM_DOMAIN: "weathered-thunder-1e1b.cloudflareaccess.com",
+    ACCESS_AUD: "6a199f9110d1d2910974ba7b9f8b75e71f5e6431b1acc1292c3c8c227c4aa83e",
+    OWNER_EMAILS: "vgcaldwell89@gmail.com",
+    SITE_URL: "https://medilifelinetrans.com",
+  },
   compatibility_flags: ["nodejs_compat"],
   d1_databases: d1
     ? [
